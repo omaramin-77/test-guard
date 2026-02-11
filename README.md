@@ -2,6 +2,8 @@
 
 A machine learning application that analyzes nutrition labels from food products using OCR and AI to provide Nutri-Score ratings (A-E scale).
 
+
+
 ## Overview
 
 Smart Food Guardian uses a refactored XGBoost model trained exclusively on nutrition label data to predict Nutri-Scores. The application:
