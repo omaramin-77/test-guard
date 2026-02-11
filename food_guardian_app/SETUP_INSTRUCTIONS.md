@@ -1,4 +1,4 @@
-# Smart Food Guardian - Setup Instructions
+git push -u origin main# Smart Food Guardian - Setup Instructions
 
 ## System Requirements
 

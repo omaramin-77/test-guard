@@ -548,12 +548,18 @@ if __name__ == '__main__':
     initialize_app()
     
     # Run Flask app
-    logger.info("Starting Flask development server...")
-    logger.info("Visit http://localhost:5000 in your browser")
+    port = int(os.environ.get('PORT', 5000))
+    is_production = os.environ.get('ENVIRONMENT') == 'production'
+    
+    if is_production:
+        logger.info("Starting Flask production server...")
+    else:
+        logger.info("Starting Flask development server...")
+        logger.info("Visit http://localhost:5000 in your browser")
     
     app.run(
         host='0.0.0.0',
-        port=5000,
-        debug=True,
-        use_reloader=True
+        port=port,
+        debug=not is_production,
+        use_reloader=False
     )
