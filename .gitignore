@@ -1,9 +1,3 @@
 venv/
 __pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-.DS_Store
-*.csv
-model_artifacts/
 uploads/
