@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Food Guardian - Nutrition Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <h1>🍎 Smart Food Guardian</h1>
+                <p class="tagline">Analyze Nutrition Labels with AI</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container main-content">
+        <div class="hero-section">
+            <h2>Know Your Food</h2>
+            <p>Upload a photo of a nutrition label or use your camera to get an instant nutritional analysis.</p>
+        </div>
+
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div class="upload-card">
+                <h3>📸 Capture or Upload</h3>
+                
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="camera">📷 Camera</button>
+                    <button class="tab-button" data-tab="upload">📁 Upload File</button>
+                </div>
+
+                <!-- Camera Tab -->
+                <div id="camera" class="tab-content active">
+                    <div class="camera-container">
+                        <video id="video-element" class="video-preview" autoplay muted playsinline></video>
+                        <canvas id="canvas-element" style="display: none;"></canvas>
+                        <p class="camera-info">📱 Your device's camera will appear here</p>
+                    </div>
+                    <div class="button-group">
+                        <button id="start-camera-btn" class="btn btn-primary">Start Camera</button>
+                        <button id="capture-btn" class="btn btn-success" style="display: none;">📸 Capture Photo</button>
+                        <button id="stop-camera-btn" class="btn btn-secondary" style="display: none;">Stop Camera</button>
+                    </div>
+                </div>
+
+                <!-- Upload Tab -->
+                <div id="upload" class="tab-content">
+                    <div class="upload-area" id="upload-area">
+                        <input type="file" id="file-input" accept="image/*" style="display: none;">
+                        <p>💾 Drag and drop your image here</p>
+                        <p class="small-text">or click to select a file</p>
+                        <p class="file-types">Supported: JPG, PNG, GIF, BMP</p>
+                    </div>
+                    <div id="file-preview" class="file-preview" style="display: none;">
+                        <img id="preview-img" src="" alt="Preview">
+                        <button id="clear-file-btn" class="btn btn-secondary btn-small">Change File</button>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button id="analyze-btn" class="btn btn-primary btn-large" disabled>
+                    🔍 Analyze Image
+                </button>
+            </div>
+        </section>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="loading-spinner" style="display: none;">
+            <div class="spinner"></div>
+            <p>Analyzing your nutrition label...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" class="error-message" style="display: none;"></div>
+
+        <!-- Results Section -->
+        <section id="results-section" class="results-section" style="display: none;">
+            <h2>📊 Analysis Results</h2>
+
+            <!-- Extracted Text -->
+            <div class="results-card">
+                <h3>📝 Extracted Text</h3>
+                <div class="text-preview">
+                    <p id="extracted-text"></p>
+                </div>
+                <button id="show-raw-text-btn" class="btn btn-secondary btn-small">Show Raw Text</button>
+                <div id="raw-text-container" class="raw-text-container" style="display: none;">
+                    <pre id="raw-text-content"></pre>
+                </div>
+            </div>
+
+            <!-- Ingredients & Allergens -->
+            <div class="results-card">
+                <h3>🥕 Ingredients & Allergens</h3>
+                <div class="ingredients-section">
+                    <div class="ingredient-box">
+                        <strong>Ingredients:</strong>
+                        <p id="ingredients-text"></p>
+                        <textarea id="ingredients-edit" class="edit-textarea" style="display: none;"></textarea>
+                    </div>
+                    <div class="ingredient-box">
+                        <strong>Allergens:</strong>
+                        <p id="allergens-text"></p>
+                        <textarea id="allergens-edit" class="edit-textarea" style="display: none;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nutrition Table -->
+            <div class="results-card">
+                <h3>📈 Nutrition Facts (per 100g)</h3>
+                <button id="edit-nutrition-btn" class="btn btn-secondary btn-small">✏️ Edit Values</button>
+                <button id="save-nutrition-btn" class="btn btn-success btn-small" style="display: none;">✓ Save Changes</button>
+                <button id="cancel-nutrition-btn" class="btn btn-secondary btn-small" style="display: none;">✗ Cancel</button>
+                
+                <table id="nutrition-table" class="nutrition-table">
+                    <thead>
+                        <tr>
+                            <th>Nutrient</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nutrition-body">
+                    </tbody>
+                </table>
+
+                <div id="validation-messages" class="validation-messages"></div>
+            </div>
+
+            <!-- Score Button -->
+            <button id="score-btn" class="btn btn-large btn-primary">
+                ⭐ Get Nutri-Score
+            </button>
+
+            <!-- Score Results -->
+            <div id="score-results" class="score-results" style="display: none;">
+                <div class="score-card" id="score-card">
+                    <div class="score-letter" id="score-letter"></div>
+                    <div class="score-info">
+                        <h2 id="score-title"></h2>
+                        <p id="score-description"></p>
+                        <p class="confidence" id="confidence-text"></p>
+                        <p class="recommendation" id="recommendation-text"></p>
+                    </div>
+                </div>
+
+                <!-- Score Breakdown -->
+                <div class="score-breakdown">
+                    <h4>Score Distribution</h4>
+                    <div class="score-bars">
+                        <div class="score-bar">
+                            <label>A (Excellent)</label>
+                            <div class="bar-container">
+                                <div class="bar" id="bar-a" style="width: 0%"></div>
+                            </div>
+                            <span class="percentage" id="pct-a">0%</span>
+                        </div>
+                        <div class="score-bar">
+                            <label>B (Good)</label>
+                            <div class="bar-container">
+                                <div class="bar" id="bar-b" style="width: 0%"></div>
+                            </div>
+                            <span class="percentage" id="pct-b">0%</span>
+                        </div>
+                        <div class="score-bar">
+                            <label>C (Moderate)</label>
+                            <div class="bar-container">
+                                <div class="bar" id="bar-c" style="width: 0%"></div>
+                            </div>
+                            <span class="percentage" id="pct-c">0%</span>
+                        </div>
+                        <div class="score-bar">
+                            <label>D (Poor)</label>
+                            <div class="bar-container">
+                                <div class="bar" id="bar-d" style="width: 0%"></div>
+                            </div>
+                            <span class="percentage" id="pct-d">0%</span>
+                        </div>
+                        <div class="score-bar">
+                            <label>E (Very Poor)</label>
+                            <div class="bar-container">
+                                <div class="bar" id="bar-e" style="width: 0%"></div>
+                            </div>
+                            <span class="percentage" id="pct-e">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="analyze-another-btn" class="btn btn-primary btn-large">
+                    🔄 Analyze Another Product
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2024 Smart Food Guardian. Built with OCR & Machine Learning.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Configuration
+        const API_BASE = '/';
+        let currentImage = null;
+        let currentImagePath = null;
+        let currentNutritionData = null;
+        let currentIngredients = '';
+        let currentAllergens = '';
+
+        // ====================================================================
+        // Tab Switching
+        // ====================================================================
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const tabName = e.target.dataset.tab;
+                
+                // Hide all tabs
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                // Remove active from all buttons
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Show selected tab
+                document.getElementById(tabName).classList.add('active');
+                e.target.classList.add('active');
+                
+                // Stop camera if switching away from camera tab
+                if (tabName !== 'camera') {
+                    stopCamera();
+                }
+            });
+        });
+
+        // ====================================================================
+        // Camera Functions
+        // ====================================================================
+        let cameraStream = null;
+
+        async function startCamera() {
+            try {
+                const video = document.getElementById('video-element');
+                const canvas = document.getElementById('canvas-element');
+                
+                // Request camera access
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                });
+                
+                video.srcObject = cameraStream;
+                
+                // Wait for video to load before showing capture button
+                video.onloadedmetadata = () => {
+                    video.play().catch(err => console.error('Video play error:', err));
+                    document.getElementById('start-camera-btn').style.display = 'none';
+                    document.getElementById('capture-btn').style.display = 'inline-block';
+                    document.getElementById('stop-camera-btn').style.display = 'inline-block';
+                    document.querySelector('.camera-info').style.display = 'none';
+                };
+                
+                console.log('Camera started successfully');
+            } catch (error) {
+                console.error('Camera error:', error);
+                showError('Could not access camera: ' + error.message);
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            
+            document.getElementById('start-camera-btn').style.display = 'inline-block';
+            document.getElementById('capture-btn').style.display = 'none';
+            document.getElementById('stop-camera-btn').style.display = 'none';
+            document.querySelector('.camera-info').style.display = 'block';
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('video-element');
+            const canvas = document.getElementById('canvas-element');
+            const ctx = canvas.getContext('2d');
+            
+            // Ensure video has loaded
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                showError('Camera not ready. Please try again.');
+                return;
+            }
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            // Create a File object from canvas (important for multipart/form-data)
+            canvas.toBlob(blob => {
+                // Convert blob to File object with a proper filename
+                const file = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                currentImage = file;
+                
+                // Switch to upload tab to show preview
+                document.getElementById('upload').classList.add('active');
+                document.getElementById('camera').classList.remove('active');
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelector('[data-tab="upload"]').classList.add('active');
+                
+                // Show file preview
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('preview-img').src = e.target.result;
+                    document.getElementById('file-preview').style.display = 'block';
+                    document.getElementById('upload-area').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+                
+                enableAnalyzeButton();
+                console.log('Photo captured successfully');
+            }, 'image/jpeg', 0.95);
+            
+            stopCamera();
+        }
+
+        // ====================================================================
+        // File Upload Functions
+        // ====================================================================
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const filePreview = document.getElementById('file-preview');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (!['image/jpeg', 'image/png', 'image/gif', 'image/bmp'].includes(file.type)) {
+                showError('Invalid file type. Please upload an image.');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('preview-img').src = e.target.result;
+                filePreview.style.display = 'block';
+                uploadArea.style.display = 'none';
+                currentImage = file;
+                enableAnalyzeButton();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.getElementById('clear-file-btn').addEventListener('click', () => {
+            fileInput.value = '';
+            currentImage = null;
+            filePreview.style.display = 'none';
+            uploadArea.style.display = 'block';
+            disableAnalyzeButton();
+        });
+
+        // ====================================================================
+        // Analyze Button
+        // ====================================================================
+        function enableAnalyzeButton() {
+            document.getElementById('analyze-btn').disabled = false;
+        }
+
+        function disableAnalyzeButton() {
+            document.getElementById('analyze-btn').disabled = true;
+        }
+
+        document.getElementById('analyze-btn').addEventListener('click', analyzeImage);
+
+        async function analyzeImage() {
+            if (!currentImage) {
+                showError('Please select or capture an image.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', currentImage);
+            
+            showLoading(true);
+            hideError();
+            
+            try {
+                const response = await fetch(API_BASE + 'analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                showLoading(false);
+                
+                if (!data.success) {
+                    showError(data.error || 'Analysis failed');
+                    return;
+                }
+                
+                // Store data
+                currentImagePath = data.image_path;
+                currentNutritionData = data.nutrition_data;
+                currentIngredients = data.extracted_data.ingredients;
+                currentAllergens = data.extracted_data.allergens;
+                
+                // Display results
+                displayResults(data);
+                document.getElementById('results-section').style.display = 'block';
+                document.querySelector('html').scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                showLoading(false);
+                showError('Network error: ' + error.message);
+            }
+        }
+
+        // ====================================================================
+        // Display Results
+        // ====================================================================
+        function displayResults(data) {
+            // Extracted text
+            document.getElementById('extracted-text').textContent = 
+                data.cleaned_text.substring(0, 300) + (data.cleaned_text.length > 300 ? '...' : '');
+            document.getElementById('raw-text-content').textContent = data.raw_text;
+            
+            // Ingredients & Allergens
+            document.getElementById('ingredients-text').textContent = 
+                data.extracted_data.ingredients || '(Not detected)';
+            document.getElementById('allergens-text').textContent = 
+                data.extracted_data.allergens || '(Not detected)';
+            
+            // Nutrition table
+            const nutritionBody = document.getElementById('nutrition-body');
+            nutritionBody.innerHTML = '';
+            
+            const nutrients = [
+                { key: 'energy_kcal_100g', label: 'Energy', unit: 'kcal' },
+                { key: 'fat_100g', label: 'Total Fat', unit: 'g' },
+                { key: 'saturated_fat_100g', label: 'Saturated Fat', unit: 'g' },
+                { key: 'carbohydrates_100g', label: 'Carbohydrates', unit: 'g' },
+                { key: 'sugars_100g', label: 'Sugars', unit: 'g' },
+                { key: 'fiber_100g', label: 'Fiber', unit: 'g' },
+                { key: 'proteins_100g', label: 'Protein', unit: 'g' },
+                { key: 'salt_100g', label: 'Salt', unit: 'g' }
+            ];
+            
+            nutrients.forEach(nut => {
+                const value = data.nutrition_data[nut.key] || 0;
+                const level = data.nutrient_levels[nut.key.replace('_100g', '')] || 'Unknown';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${nut.label}</td>
+                    <td>
+                        <span class="editable-value" data-key="${nut.key}">
+                            ${(value).toFixed(2)} ${nut.unit}
+                        </span>
+                        <input type="number" step="0.01" class="edit-input" 
+                               data-key="${nut.key}" value="${value}" style="display: none;">
+                    </td>
+                    <td><span class="status-badge">${level}</span></td>
+                `;
+                nutritionBody.appendChild(row);
+            });
+            
+            // Validation messages
+            const validationDiv = document.getElementById('validation-messages');
+            validationDiv.innerHTML = '';
+            Object.values(data.validation).forEach(msg => {
+                const p = document.createElement('p');
+                p.textContent = msg;
+                p.className = msg.includes('✓') ? 'validation-ok' : 'validation-warn';
+                validationDiv.appendChild(p);
+            });
+        }
+
+        // ====================================================================
+        // Edit Nutrition Values
+        // ====================================================================
+        document.getElementById('edit-nutrition-btn').addEventListener('click', () => {
+            document.querySelectorAll('.editable-value').forEach(span => {
+                span.style.display = 'none';
+                const key = span.dataset.key;
+                const input = document.querySelector(`input[data-key="${key}"]`);
+                if (input) input.style.display = 'inline-block';
+            });
+            
+            document.getElementById('edit-nutrition-btn').style.display = 'none';
+            document.getElementById('save-nutrition-btn').style.display = 'inline-block';
+            document.getElementById('cancel-nutrition-btn').style.display = 'inline-block';
+        });
+
+        document.getElementById('cancel-nutrition-btn').addEventListener('click', () => {
+            document.querySelectorAll('.editable-value').forEach(span => {
+                span.style.display = 'inline';
+            });
+            document.querySelectorAll('.edit-input').forEach(input => {
+                input.style.display = 'none';
+            });
+            
+            document.getElementById('edit-nutrition-btn').style.display = 'inline-block';
+            document.getElementById('save-nutrition-btn').style.display = 'none';
+            document.getElementById('cancel-nutrition-btn').style.display = 'none';
+        });
+
+        document.getElementById('save-nutrition-btn').addEventListener('click', () => {
+            const updatedData = {};
+            document.querySelectorAll('.edit-input').forEach(input => {
+                updatedData[input.dataset.key] = parseFloat(input.value) || 0;
+            });
+            
+            currentNutritionData = { ...currentNutritionData, ...updatedData };
+            
+            // Update display
+            document.querySelectorAll('.edit-input').forEach(input => {
+                const key = input.dataset.key;
+                const span = document.querySelector(`span[data-key="${key}"]`);
+                if (span) {
+                    const unit = span.parentElement.textContent.match(/[a-z]+$/)[0];
+                    span.textContent = `${(input.value).toFixed(2)} ${unit}`;
+                }
+                input.style.display = 'none';
+            });
+            document.querySelectorAll('.editable-value').forEach(span => {
+                span.style.display = 'inline';
+            });
+            
+            document.getElementById('edit-nutrition-btn').style.display = 'inline-block';
+            document.getElementById('save-nutrition-btn').style.display = 'none';
+            document.getElementById('cancel-nutrition-btn').style.display = 'none';
+            
+            showSuccess('Nutrition data updated successfully!');
+        });
+
+        // ====================================================================
+        // Score Button
+        // ====================================================================
+        document.getElementById('score-btn').addEventListener('click', scoreNutrition);
+
+        async function scoreNutrition() {
+            showLoading(true);
+            hideError();
+            
+            try {
+                const response = await fetch(API_BASE + 'score', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nutrition_data: currentNutritionData,
+                        ingredients_text: currentIngredients
+                    })
+                });
+                
+                const data = await response.json();
+                showLoading(false);
+                
+                if (!data.success) {
+                    showError(data.error || 'Scoring failed');
+                    return;
+                }
+                
+                displayScore(data);
+                document.getElementById('score-results').style.display = 'block';
+                
+            } catch (error) {
+                showLoading(false);
+                showError('Network error: ' + error.message);
+            }
+        }
+
+        function displayScore(data) {
+            // Score card
+            const scoreCard = document.getElementById('score-card');
+            scoreCard.style.backgroundColor = data.explanation.color;
+            
+            document.getElementById('score-letter').textContent = data.nutri_score;
+            document.getElementById('score-title').textContent = data.explanation.title;
+            document.getElementById('score-description').textContent = data.explanation.description;
+            document.getElementById('confidence-text').textContent = 
+                `Confidence: ${data.confidence}%`;
+            document.getElementById('recommendation-text').textContent = 
+                data.explanation.recommendation;
+            
+            // Score bars
+            const colors = {
+                'A': '#2ecc71',
+                'B': '#a8d84d',
+                'C': '#ffd633',
+                'D': '#ff9933',
+                'E': '#ff4444'
+            };
+            
+            ['A', 'B', 'C', 'D', 'E'].forEach(letter => {
+                const percentage = data.class_probabilities[letter];
+                document.getElementById(`bar-${letter.toLowerCase()}`).style.width = percentage + '%';
+                document.getElementById(`bar-${letter.toLowerCase()}`).style.backgroundColor = colors[letter];
+                document.getElementById(`pct-${letter.toLowerCase()}`).textContent = percentage + '%';
+            });
+        }
+
+        // ====================================================================
+        // Analyze Another
+        // ====================================================================
+        document.getElementById('analyze-another-btn').addEventListener('click', () => {
+            location.reload();
+        });
+
+        // ====================================================================
+        // UI Utilities
+        // ====================================================================
+        function showLoading(show) {
+            document.getElementById('loading-spinner').style.display = show ? 'flex' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = '⚠️ ' + message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'success-message';
+            msgDiv.textContent = '✓ ' + message;
+            document.body.appendChild(msgDiv);
+            
+            setTimeout(() => {
+                msgDiv.remove();
+            }, 3000);
+        }
+
+        // ====================================================================
+        // Show Raw Text
+        // ====================================================================
+        document.getElementById('show-raw-text-btn').addEventListener('click', () => {
+            const container = document.getElementById('raw-text-container');
+            container.style.display = container.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // ====================================================================
+        // Event Listeners for Camera Buttons
+        // ====================================================================
+        document.getElementById('start-camera-btn').addEventListener('click', startCamera);
+        document.getElementById('capture-btn').addEventListener('click', capturePhoto);
+        document.getElementById('stop-camera-btn').addEventListener('click', stopCamera);
+    </script>
+</body>
+</html>
